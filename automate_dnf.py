@@ -1,4 +1,3 @@
-#!/usr/bin /env python3
 import os
 import subprocess
 import socket
@@ -49,11 +48,28 @@ subprocess.run(["sudo", "cp", "-r", f"{download_dir}/", f"{repo_base}/"], check=
 print(f"[+] Creating repo metadata with createrepo_c...")
 subprocess.run(["sudo", "createrepo_c", repo_base], check=True)
 
-##### You can modify you server's IP over here ####
-ip_address = socket.gethostbyname(socket.gethostname())
+ip_address = get_ip()
 repo_url = f"http://{ip_address}/repos/{repo_name}/"
 print(f"\n Local repo created successfully!")
 print(f"Repo path: {repo_base}")
 print(f"Repo URL:  {repo_url}")
+
+repo_file_path = f"/etc/yum.repos.d/{repo_name}.repo"
+repo_content = f"""[{repo_name}]
+name={repo_name} local repository
+baseurl=http://{ip_address}/repos/{repo_name}/
+enabled=1
+gpgcheck=0
+"""
+
+tmp_repo_path = f"/tmp/{repo_name}.repo"
+with open(tmp_repo_path, "w") as f:
+    f.write(repo_content)
+
+subprocess.run(["sudo", "mv", tmp_repo_path, repo_file_path], check=True)
+print(f"[+] Repo config created at {repo_file_path}")
+subprocess.run(["sudo", "dnf", "clean", "all"], check=False)
+subprocess.run(["sudo", "dnf", "makecache"], check=False)
+
 print("\nYou can now use it with:")
 print(f"sudo dnf config-manager --add-repo {repo_url}")
